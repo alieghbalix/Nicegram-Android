@@ -18,6 +18,7 @@ import androidx.annotation.Keep;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.appvillis.assistant_core.MainActivity;
+import com.appvillis.nicegram.NicegramPrefs;
 
 import app.nicegram.NicegramDoubleBottom;
 import app.nicegram.NicegramWalletHelper;
@@ -65,7 +66,9 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
 
     private int getAccountRowsCount() {
         int count = accountNumbers.size() + 1;
-        if (accountNumbers.size() < UserConfig.MAX_ACCOUNT_COUNT) {
+        //  ng max account limit
+        if (accountNumbers.size() < NicegramPrefs.PREF_MAX_ACCOUNTS_MAX) {
+//        if (accountNumbers.size() < UserConfig.MAX_ACCOUNT_COUNT) {
             count++;
         }
         return count;
@@ -195,7 +198,9 @@ public class DrawerLayoutAdapter extends RecyclerListView.SelectionAdapter {
             if (i < accountNumbers.size()) {
                 return 4;
             } else {
-                if (accountNumbers.size() < UserConfig.MAX_ACCOUNT_COUNT) {
+                // ng max account limit
+                if (accountNumbers.size() < NicegramPrefs.PREF_MAX_ACCOUNTS_MAX) {
+//                if (accountNumbers.size() < UserConfig.MAX_ACCOUNT_COUNT) {
                     if (i == accountNumbers.size()){
                         return 5;
                     } else if (i == accountNumbers.size() + 1) {

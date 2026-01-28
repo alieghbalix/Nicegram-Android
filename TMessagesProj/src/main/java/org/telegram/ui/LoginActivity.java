@@ -104,6 +104,7 @@ import androidx.fragment.app.FragmentActivity;
 import com.appvillis.core_network.data.HeaderInterceptor;
 import com.appvillis.core_resources.widgets.EsimBannerView;
 import com.appvillis.feature_account_export.ExportAccountsBottomSheetFragment;
+import com.appvillis.feature_account_export.domain.Account;
 import com.appvillis.nicegram.NicegramLoginHelper;
 import com.appvillis.nicegram.NicegramThemeApplyHelper;
 import com.appvillis.nicegram.presentation.NicegramTutorialSmsDialog;
@@ -3010,7 +3011,14 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 return;
             }
             String phoneNumber = "+" + codeField.getText() + " " + phoneField.getText();
-            NicegramLoginHelper.INSTANCE.onLoginBtnClicked(getContext(), phoneNumber);
+            if (NicegramLoginHelper.INSTANCE.onLoginBtnClicked(getContext(), phoneNumber, uri -> {
+                List<Account> account = new ArrayList<>();
+                account.add(new Account(0, "0", "", ""));
+                AccountsExportHelper.INSTANCE.importAccounts((FragmentActivity) getParentActivity(), uri, account);
+                return null;
+            })) {
+                return;
+            }
             if (!confirmedNumber) {
                 if (AndroidUtilities.displaySize.x > AndroidUtilities.displaySize.y && !isCustomKeyboardVisible() && sizeNotifierFrameLayout.measureKeyboardHeight() > AndroidUtilities.dp(20)) {
                     keyboardHideCallback = () -> postDelayed(()-> onNextPressed(code), 200);

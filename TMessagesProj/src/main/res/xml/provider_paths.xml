@@ -7,4 +7,5 @@
 
     <files-path name="avatars" path="avatars_gen/" />
     <cache-path name="shared_images" path="images/"/>
+    <cache-path name="stories" path="stories/"/>
 </paths>

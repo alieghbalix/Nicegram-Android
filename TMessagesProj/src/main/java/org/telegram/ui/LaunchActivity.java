@@ -107,6 +107,7 @@ import com.appvillis.nicegram.AnalyticsHelper;
 import com.appvillis.nicegram.NicegramAssistantHelper;
 import com.appvillis.feature_nicegram_client.presentation.onboarding.NicegramOnboardingActivity;
 import com.appvillis.feature_nicegram_client.presentation.premium.NicegramPremiumActivity;
+import com.appvillis.nicegram.NicegramPrefs;
 import com.appvillis.nicegram_wallet.wallet_contacts.domain.WalletContact;
 import com.appvillis.nicegram_wallet.wallet_tonconnect.domain.TcDeeplinkManager;
 import com.google.android.gms.common.api.Status;
@@ -285,6 +286,8 @@ import app.nicegram.NicegramDoubleBottom;
 import app.nicegram.NicegramIntroActivity;
 import app.nicegram.NicegramSettingsActivity;
 import app.nicegram.NicegramWalletHelper;
+import app.nicegram.PrefsHelper;
+import app.nicegram.RebirthHelper;
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
@@ -648,6 +651,28 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                 switchToAccount(((DrawerUserCell) view).getAccountNumber(), true);
                 drawerLayoutContainer.closeDrawer(false);
             } else if (view instanceof DrawerAddCell) {
+                // region ng max account limit
+                int currentAccountCount = UserConfig.getActivatedAccountsCount();
+                int currentMax = PrefsHelper.INSTANCE.getMaxAccountCount(this);
+
+                if (currentAccountCount >= NicegramPrefs.PREF_MAX_ACCOUNTS_DEFAULT &&
+                        currentMax == NicegramPrefs.PREF_MAX_ACCOUNTS_DEFAULT) {
+
+                    AlertsCreator.createSimpleAlert(
+                            this,
+                            "",
+                            LocaleController.getString("NicegramMaxAccount_IncreaseWarn"),
+                            LocaleController.getString("NicegramMaxAccount_Increase"),
+                            () -> {
+                                PrefsHelper.INSTANCE.setMaxAccountCount(this, NicegramPrefs.PREF_MAX_ACCOUNTS_MAX);
+                                view.postDelayed(() -> {RebirthHelper.INSTANCE.triggerRebirth(this);}, 500);
+                            },
+                            null
+                    ).create().show();
+
+                    return;
+                }
+                // endregion
                 int freeAccounts = 0;
                 Integer availableAccount = null;
                 for (int a = UserConfig.MAX_ACCOUNT_COUNT - 1; a >= 0; a--) {
@@ -1972,6 +1997,34 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             StoryRecorder.destroyInstance();
 //            dismissAllWeb();
         }
+        //ng region share att to story
+        if (intent != null && "com.nicegram.action.OPEN_STORY_EDITOR".equals(intent.getAction())) {
+            String path = intent.getStringExtra("story_photo_path");
+            if (path != null) {
+                java.io.File file = new java.io.File(path);
+                boolean exists = file.exists();
+                android.util.Log.d("AirdropDebug", "File exists check: " + exists);
+
+                if (exists) {
+                    try {
+                        org.telegram.messenger.MediaController.PhotoEntry photoEntry = new org.telegram.messenger.MediaController.PhotoEntry(0, 0, 0, file.getAbsolutePath(), 0, false, 0, 0, 0);
+                        org.telegram.ui.Stories.recorder.StoryEntry entry = org.telegram.ui.Stories.recorder.StoryEntry.fromPhotoEntry(photoEntry);
+                        entry.isEdit = false;
+                        String caption = intent.getStringExtra("story_caption");
+                        if (caption != null) {
+                            entry.caption = caption;
+                        }
+
+                        org.telegram.ui.Stories.recorder.StoryRecorder.getInstance(this, this.currentAccount).openEdit(null, entry, 0, true);
+                        return true;
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        //end region
         if (webviewShareAPIDoneListener != null) {
             webviewShareAPIDoneListener.run(true);
             webviewShareAPIDoneListener = null;

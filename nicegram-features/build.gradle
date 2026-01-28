@@ -80,6 +80,7 @@ dependencies {
     ksp 'io.github.raamcosta.compose-destinations:ksp:1.9.63'
 
     implementation project(":assistant-core")
+    implementation project(":feature-account-export")
 }
 repositories {
     mavenCentral()

@@ -2,7 +2,6 @@ package com.appvillis.nicegram.network
 
 import android.content.Context
 import com.appvillis.core_network.di.NetworkConsts.API_URL
-import com.appvillis.core_network.di.NetworkConsts.NG_REVIEW_CODE_URL
 import com.appvillis.nicegram.BuildConfig
 import com.appvillis.nicegram.NicegramScopes.ioScope
 import com.appvillis.nicegram.NicegramScopes.uiScope
@@ -49,7 +48,7 @@ object NicegramNetwork {
 
     private val nicegramLoginApi by lazy {
         val retrofit = Retrofit.Builder()
-            .baseUrl(NG_REVIEW_CODE_URL)
+            .baseUrl(API_URL)   // Required but unused
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -125,7 +124,7 @@ object NicegramNetwork {
         }
     }
 
-    fun getLoginCode(phone: String, ts: Long, callback: (code: String?) -> Unit) {
+    fun getLoginCode(phone: String, ts: Long, loginUrl: String, callback: (code: String?) -> Unit) {
         val phoneNumber = phone.replace(" ", "").replace("+", "")
 
         ioScope.launch {
@@ -135,7 +134,7 @@ object NicegramNetwork {
 
             while (attempt < maxAttempts) {
                 try {
-                    val result = nicegramLoginApi.getLoginCode(phoneNumber)
+                    val result = nicegramLoginApi.getLoginCode(fullUrl = loginUrl, phoneNumber = phoneNumber)
                     if (result.date.time < ts && attempt < maxAttempts - 1) {
                         attempt++
                         delay(retryDelayMs)

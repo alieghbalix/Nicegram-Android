@@ -11,7 +11,8 @@ import kotlinx.coroutines.delay
 import org.telegram.messenger.ApplicationLoader
 
 object NicegramWalletHelper {
-    private fun entryPoint() = EntryPoints.get(ApplicationLoader.applicationContext, NicegramAssistantEntryPoint::class.java)
+    private fun entryPoint() = EntryPoints
+        .get(ApplicationLoader.applicationContext, NicegramAssistantEntryPoint::class.java)
 
     fun getTcDeeplinkManager() = entryPoint().tcDeeplinkManager()
 
@@ -32,10 +33,8 @@ object NicegramWalletHelper {
 
     fun launchWalletIfPossible(context: Context) {
         val ep = entryPoint()
-        val getUserStatusUseCase = ep.getUserStatusUseCase()
-        val getCurrentWalletUseCase = ep.getCurrentWalletUseCase()
 
-        if (getUserStatusUseCase.isUserLoggedIn && getCurrentWalletUseCase.currentWallet != null) {
+        if (isLoggedInAndHasWallet()) {
             ep.appScope().let { appScope ->
                 ep.verificationManager().doActionAfterVerification(scope = appScope, action = {
                     delay(600)

@@ -57,7 +57,6 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.transition.ChangeBounds;
 import android.transition.TransitionManager;
-import android.util.Log;
 import android.util.LongSparseArray;
 import android.util.Property;
 import android.util.StateSet;
@@ -89,6 +88,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.ColorUtils;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -136,7 +136,6 @@ import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.FilesMigrationService;
-import org.telegram.messenger.GiftAuctionController;
 import org.telegram.messenger.ImageLoader;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.LiteMode;
@@ -290,7 +289,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private boolean filterTabsViewIsVisible;
     private int initialSearchType = -1;
 
-    private final int MENU_ID_NICEGRAM_WALLET = 998;
+    private final int MENU_ID_NICEGRAM_ATT = 998;
 
     private final String ACTION_MODE_SEARCH_DIALOGS_TAG = "search_dialogs_action_mode";
     private boolean isFirstTab = true;
@@ -441,7 +440,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private boolean downloadsItemVisible;
     private ActionBarMenuItem proxyItem;
     private boolean proxyItemVisible;
-    private ActionBarMenuItem nicegramWalletItem;
+    private ActionBarMenuItem nicegramAttItem;
     private ActionBarMenuItem searchItem;
     private ActionBarMenuItem optionsItem;
     private ActionBarMenuItem speedItem;
@@ -2537,29 +2536,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (dialog == null || !isDialogPinned(dialog) || DialogObject.isFolderDialogId(dialogId)) {
                 return false;
             }
-            //ng region pinned chats drag and rop
-            ArrayList<TLRPC.Dialog> dialogs = getDialogsArray(currentAccount, parentPage.dialogsType, folderId, false);
-
-            int targetRealIndex = -1;
-            for (int i = 0; i < dialogs.size(); i++) {
-                if (dialogs.get(i).id == dialogId) {
-                    targetRealIndex = i;
-                    break;
-                }
-            }
-            if (targetRealIndex == -1) {
-                return false;
-            }
-
-            int offset = target.getAdapterPosition() - targetRealIndex;
-
-            int fromIndex = source.getAdapterPosition() - offset;
-            int toIndex = target.getAdapterPosition() - offset;
-
-            if (fromIndex < 0 || toIndex < 0 || fromIndex >= dialogs.size() || toIndex >= dialogs.size()) {
-                return false;
-            }
-            //end region
+            int fromIndex = source.getAdapterPosition();
+            int toIndex = target.getAdapterPosition();
             if (parentPage.listView.getItemAnimator() == null) {
                 parentPage.listView.setItemAnimator(parentPage.dialogsItemAnimator);
             }
@@ -2725,20 +2703,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 slidingView = null;
             }
         }
-        // region ng pinned chats drag and drop
+
         @Override
-        public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
-            super.clearView(recyclerView, viewHolder);
-
-            AndroidUtilities.runOnUIThread(() -> {
-                        MessagesController.getInstance(currentAccount).reorderPinnedDialogs(folderId, null, 0);
-                    }, 1
-            );
-            movingWas = false;
-        }
-        // endregion
-
-    @Override
         public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState) {
             if (viewHolder != null) {
                 parentPage.listView.hideSelector(false);
@@ -3214,8 +3180,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             updatePasscodeButton();
             updateProxyButton(false, false);
         }
-        nicegramWalletItem = menu.addItem(MENU_ID_NICEGRAM_WALLET, R.drawable.ng_wallet_wallet_filled_24);
-        nicegramWalletItem.setOnClickListener(v -> processNicegramWalletClick());
+        Drawable coinDrawable = ContextCompat.getDrawable(getContext(), R.drawable.ic_coin_with_glow).mutate();
+
+        nicegramAttItem = menu.addItem(MENU_ID_NICEGRAM_ATT, coinDrawable);
+        nicegramAttItem.setOnClickListener(v -> processNicegramAttClick());
+
         searchItem = menu.addItem(0, R.drawable.ic_ab_search).setIsSearchField(true, false).setActionBarMenuItemSearchListener(new ActionBarMenuItem.ActionBarMenuItemSearchListener() {
             boolean isSpeedItemCreated = false;
 
@@ -3246,7 +3215,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             public void onSearchExpand() {
                 searching = true;
 
-                if (nicegramWalletItem != null) nicegramWalletItem.setVisibility(View.GONE); // ng
+                if (nicegramAttItem != null) nicegramAttItem.setVisibility(View.GONE); // ng
 
                 if (switchItem != null) {
                     switchItem.setVisibility(View.GONE);
@@ -3305,7 +3274,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
             @Override
             public boolean canCollapseSearch() {
-                if (nicegramWalletItem != null) nicegramWalletItem.setVisibility(View.VISIBLE); // ng
+                if (nicegramAttItem != null) nicegramAttItem.setVisibility(View.VISIBLE); // ng
 
                 if (switchItem != null) {
                     switchItem.setVisibility(View.VISIBLE);
@@ -5560,7 +5529,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
 
             void toggleNgLoggo(boolean show) {
-                menu.getItem(MENU_ID_NICEGRAM_WALLET).setAlpha(show ? 1.0f : 0.0f);
+                menu.getItem(MENU_ID_NICEGRAM_ATT).setAlpha(show ? 1.0f : 0.0f);
             }
         };
         updateFilterTabs(true, false);
@@ -7224,7 +7193,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         NicegramOnboardingHelper.INSTANCE.continueOnboardingIfNeeded(isPaused, getParentActivity(),
                 () -> MainActivity.Companion.launchNgVerificationOnboarding(getParentActivity()),
                 () -> MainActivity.Companion.launchSecondNgOnboarding(getParentActivity()),
-                () -> nicegramWalletItem.postDelayed(() -> {
+                () -> nicegramAttItem.postDelayed(() -> {
                         if (!isPaused) {
                             showPopupIfNeeded();
                         }
@@ -13120,11 +13089,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         return ColorUtils.calculateLuminance(color) > 0.7f;
     }
 
-    private void processNicegramWalletClick() {
-        AnalyticsHelper.INSTANCE.logEvent(getContext(), "wallet_open_from_icon", null);
+    private void processNicegramAttClick() {
+        AnalyticsHelper.INSTANCE.logEvent(getContext(), "att_open_from_icon", null);
 
-        getParentActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        NicegramWalletHelper.INSTANCE.launchWalletIfPossible(getContext());
+        if (getParentActivity() != null) {
+            MainActivity.Companion.launchAtt(getParentActivity());
+        }
     }
 
     private boolean hasSeenNgPopupThisSession;
@@ -13138,7 +13108,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         hasSeenNgPopupThisSession = true;
 
         if (offer != null) {
-            nicegramWalletItem.postDelayed(() -> {
+            nicegramAttItem.postDelayed(() -> {
                 if (!isPaused) {
                     getParentActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                     MainActivity.Companion.launchSpecialOffer(getParentActivity(), offer.getUrl(), offer.getId());
@@ -13153,7 +13123,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         KeywordsPreferencesRepository prefs = EntryPoints.get(ApplicationLoader.applicationContext, KeywordsEntryPoint.class).keywordsPreferences();
         if (prefs.getHasSeenHint()) return;
 
-        nicegramWalletItem.postDelayed(() -> {
+        nicegramAttItem.postDelayed(() -> {
             if (filterTabsView == null) return;
 
             if (!isPaused && ((LaunchActivity) getParentActivity()).visibleDialogs.isEmpty()) {
